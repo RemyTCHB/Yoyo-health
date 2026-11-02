@@ -240,9 +240,8 @@ export default function HealthApp() {
         ) : (
           <HistoryView sessions={sessions} isEditor={isEditor} onEdit={openEdit} onNew={openNew} />
         )}
-        <p className="mx-auto mt-10 max-w-md text-center text-[11px] leading-relaxed text-muted">
-          For personal tracking, not medical advice. Categories follow the ACC/AHA adult blood
-          pressure guideline. Talk to a clinician about any concerning readings.
+        <p className="mx-auto mt-10 max-w-md text-center text-[13px] leading-relaxed text-ink-2">
+          May you always be healthy and happy my love
         </p>
       </main>
 
