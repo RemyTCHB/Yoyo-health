@@ -5,6 +5,8 @@ import { Check, Clock, Plus, Trash2, X } from "lucide-react";
 import {
   LIMITS,
   bpLevel,
+  dayKey,
+  fmtDateShort,
   fmtTime,
   readingError,
   summarize,
@@ -13,6 +15,7 @@ import {
 } from "@/lib/stats";
 import type { Arm, Position, Reading, Session, SessionInput } from "@/lib/types";
 import { Button, LevelBadge, Segmented, Sheet, Switch, cx } from "./ui";
+import DateTimePicker from "./DateTimePicker";
 
 type Row = { sys: string; dia: string; hr: string; at: number | null };
 type Meta = {
@@ -45,12 +48,6 @@ function save(key: string, v: unknown) {
 const num = (s: string) => (s === "" ? undefined : Number(s));
 const isBlank = (r: Row) => !r.sys && !r.dia && !r.hr;
 const isFilled = (r: Row) => !!(r.sys && r.dia && r.hr);
-
-function toLocalInput(ms: number) {
-  const d = new Date(ms);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-}
 
 function initialState(initial: Session | null): { rows: Row[]; meta: Meta; restored: boolean } {
   if (initial) {
@@ -142,11 +139,8 @@ export default function SessionForm({
     if (field === "dia" && v.length === 3) inputs.current[`${i}-hr`]?.focus();
   };
 
-  const setTime = (i: number, value: string) => {
-    const ms = new Date(value).getTime();
-    if (!Number.isFinite(ms)) return;
+  const setTime = (i: number, ms: number) =>
     setRows((prev) => prev.map((r, j) => (j === i ? { ...r, at: ms } : r)));
-  };
 
   const removeRow = (i: number) => setRows((prev) => prev.filter((_, j) => j !== i));
 
@@ -329,10 +323,22 @@ export default function SessionForm({
                     <button
                       type="button"
                       onClick={() => setEditingTime(editingTime === i ? null : i)}
-                      className="tnum inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-ink-2 hover:bg-surface-2"
-                      title="Change time"
+                      className={cx(
+                        "tnum inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium underline decoration-dotted decoration-[var(--axis)] underline-offset-4 transition",
+                        editingTime === i ? "bg-primary text-on-primary no-underline" : "text-ink-2 hover:bg-surface-2",
+                      )}
+                      title="Change date & time"
+                      aria-expanded={editingTime === i}
                     >
-                      {fmtTime(r.at, initial?.tz ?? viewerTz())}
+                      <span className="flex flex-col items-end leading-tight">
+                        {dayKey(r.at, initial?.tz ?? viewerTz()) !==
+                          dayKey(now, initial?.tz ?? viewerTz()) && (
+                          <span className="text-[10px] font-normal opacity-70">
+                            {fmtDateShort(r.at)}
+                          </span>
+                        )}
+                        {fmtTime(r.at, initial?.tz ?? viewerTz())}
+                      </span>
                     </button>
                   ) : rows.length > 1 && !isBlank(r) ? (
                     <button
@@ -349,25 +355,16 @@ export default function SessionForm({
                 </div>
               </div>
               {editingTime === i && r.at && (
-                <div className="mt-1.5 flex items-center gap-2 px-1">
-                  <input
-                    type="datetime-local"
-                    value={toLocalInput(r.at)}
-                    onChange={(e) => setTime(i, e.target.value)}
-                    className="h-10 flex-1 rounded-xl border border-line bg-surface px-3 text-sm"
-                    aria-label={`Time of reading ${i + 1}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      removeRow(i);
-                      setEditingTime(null);
-                    }}
-                    className="h-10 rounded-xl px-3 text-sm font-medium text-critical hover:bg-surface-2"
-                  >
-                    Remove
-                  </button>
-                </div>
+                <DateTimePicker
+                  label={`Time of reading ${i + 1}`}
+                  value={r.at}
+                  onChange={(ms) => setTime(i, ms)}
+                  onDone={() => setEditingTime(null)}
+                  onRemove={() => {
+                    removeRow(i);
+                    setEditingTime(null);
+                  }}
+                />
               )}
               {err && <p className="mt-1 px-2 text-xs text-critical">{err}</p>}
             </div>
