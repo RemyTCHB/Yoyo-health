@@ -150,7 +150,7 @@ export default function HealthApp() {
   const openEdit = (s: Session) => setForm({ mode: "edit", session: s });
 
   return (
-    <div className="min-h-dvh pb-28 md:pb-12">
+    <div className="min-h-dvh pb-36 md:pb-12">
       {/* ---------- header ---------- */}
       <header className="pt-safe sticky top-0 z-30 border-b border-line bg-bg/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
@@ -250,28 +250,25 @@ export default function HealthApp() {
         aria-label="Main"
         className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/85 backdrop-blur-xl md:hidden"
       >
-        <div className="mx-auto flex h-16 max-w-md items-stretch justify-around px-2">
-          {TABS.slice(0, 2).map((t) => (
-            <TabButton key={t.key} t={t} active={tab === t.key} onClick={() => setTab(t.key)} />
-          ))}
-          {isEditor && (
-            <div className="flex w-16 items-center justify-center">
-              <button
-                type="button"
-                onClick={openNew}
-                aria-label="New session"
-                className="-mt-7 grid h-14 w-14 place-items-center rounded-2xl text-white shadow-[0_8px_24px_rgba(217,48,74,0.4)] transition active:scale-95"
-                style={{ background: "linear-gradient(135deg,#ff7a7e,#d9304a)" }}
-              >
-                <Plus size={26} strokeWidth={2.5} />
-              </button>
-            </div>
-          )}
-          {TABS.slice(2).map((t) => (
+        <div className="mx-auto grid h-16 max-w-md grid-cols-3 px-2">
+          {TABS.map((t) => (
             <TabButton key={t.key} t={t} active={tab === t.key} onClick={() => setTab(t.key)} />
           ))}
         </div>
       </nav>
+
+      {/* ---------- mobile "new session" button ---------- */}
+      {isEditor && (
+        <button
+          type="button"
+          onClick={openNew}
+          aria-label="New session"
+          className="fixed right-5 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-30 grid h-14 w-14 place-items-center rounded-full text-white shadow-[0_8px_24px_rgba(217,48,74,0.45)] transition active:scale-95 md:hidden"
+          style={{ background: "linear-gradient(135deg,#ff7a7e,#d9304a)" }}
+        >
+          <Plus size={26} strokeWidth={2.5} />
+        </button>
+      )}
 
       {isEditor && form && (
         <SessionForm
