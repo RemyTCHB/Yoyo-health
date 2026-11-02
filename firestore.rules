@@ -1,0 +1,73 @@
+rules_version = '2';
+
+// Yoyo Health security rules.
+// Access comes only from the /api/unlock endpoint, which checks the PIN on
+// the server and hands out a token with a `role` ("editor" | "viewer") and
+// a `key` tied to the current PIN. If the PIN changes, old keys stop working.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function hasRole() {
+      return request.auth != null
+        && request.auth.token.role in ['editor', 'viewer'];
+    }
+
+    function keyIsCurrent() {
+      let access = get(/databases/$(database)/documents/config/access).data;
+      return request.auth.token.key == access[request.auth.token.role];
+    }
+
+    function canView() {
+      return hasRole() && keyIsCurrent();
+    }
+
+    function canEdit() {
+      return hasRole() && request.auth.token.role == 'editor' && keyIsCurrent();
+    }
+
+    function validReading(r) {
+      return r.keys().hasOnly(['sys', 'dia', 'hr', 'at'])
+        && r.sys is int && r.sys >= 60 && r.sys <= 260
+        && r.dia is int && r.dia >= 30 && r.dia <= 160
+        && r.hr is int && r.hr >= 25 && r.hr <= 250
+        && r.at is timestamp;
+    }
+
+    function validReadings(list) {
+      return list is list && list.size() >= 1 && list.size() <= 6
+        && validReading(list[0])
+        && (list.size() < 2 || validReading(list[1]))
+        && (list.size() < 3 || validReading(list[2]))
+        && (list.size() < 4 || validReading(list[3]))
+        && (list.size() < 5 || validReading(list[4]))
+        && (list.size() < 6 || validReading(list[5]));
+    }
+
+    function validSession(d) {
+      return d.keys().hasOnly([
+          'takenAt', 'tz', 'readings', 'avgSys', 'avgDia', 'avgHr',
+          'arm', 'position', 'meds', 'medsNote', 'notes',
+          'createdAt', 'updatedAt'])
+        && d.takenAt is timestamp
+        && d.tz is string && d.tz.size() < 64
+        && validReadings(d.readings)
+        && d.avgSys is number && d.avgDia is number && d.avgHr is number
+        && (d.arm == null || d.arm in ['left', 'right'])
+        && (d.position == null || d.position in ['sitting', 'standing', 'lying'])
+        && d.meds is bool
+        && d.medsNote is string && d.medsNote.size() <= 500
+        && d.notes is string && d.notes.size() <= 2000;
+    }
+
+    match /sessions/{id} {
+      allow read: if canView();
+      allow create, update: if canEdit() && validSession(request.resource.data);
+      allow delete: if canEdit();
+    }
+
+    // Everything else (config, rate-limit counters) is server-only.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
