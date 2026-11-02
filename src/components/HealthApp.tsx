@@ -241,7 +241,7 @@ export default function HealthApp() {
           <HistoryView sessions={sessions} isEditor={isEditor} onEdit={openEdit} onNew={openNew} />
         )}
         <p className="mx-auto mt-10 max-w-md text-center text-[13px] leading-relaxed text-ink-2">
-          May you always be healthy and happy my love
+          May You Always Be Healthy &amp; Happy My Love ✨❤️
         </p>
       </main>
 
